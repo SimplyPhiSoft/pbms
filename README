@@ -1,0 +1,14 @@
+Personal Bookmark Service
+
+Dependancies:
+   - newer version of JDK, tested on JDK6 and JDK7
+   - Maven http://maven.apache.org/
+
+
+Quick Start
+   1. Clone this project and cd to project home/base directory
+   2. mvn clean package
+   3. java -jar target/bookmark-service-*-with-dependencies.jar
+   4. take your browser to localhost:9090
+   5. Drag and Drop Bookmarklet link to your Bookmark where it is easily accessible
+   6. Start Bookmarking and reporting issues

@@ -1,0 +1,248 @@
+<html>
+  <head>
+    <title> Personal Bookmarks </title>
+
+    <script type="text/javascript" src="/js/jquery-2.0.3.min.js" > </script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-responsive.min.css">
+    <script type="text/javascript" src="/js/bootstrap.js" > </script>
+    <style>
+      .bookmark {
+          margin: 3px;
+          padding : 2px 35px 2px 14px;
+      }
+      .tag {
+          margin :3px;
+          font-size:0.7em;
+          padding-left: 3px;
+          padding-right: 3px;
+          border-radius:3px;
+      }
+      .tag:hover {
+         background:#84D8F7;
+      }
+      .bookmarklink {
+          display:block;
+      }
+      ul.bookmarklist {
+        list-style-type : none;
+        margin: 0px 0px 10px 0px;
+      }
+      button.delete {
+        color:#989898;
+        opacity:0.7;
+      }
+
+      button.delete:hover {
+        color:red;
+        opacity:1.0;
+      }
+
+      .horizontal-divider {
+        margin:2px 0px 5px 0px;
+        border-top:2px solid #989898;
+      }
+
+      .btn {
+        margin-top: -7px;
+      }
+
+      a {
+        font-size: 0.85em;
+      }
+
+    </style>
+    <script type="text/javascript" >
+
+     /*
+      * Get value of Query parameter from URL
+      */
+     function urlParam( name ){
+          name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");  
+          var regexS = "[\\?&]"+name+"=([^&#]*)";  
+          var regex = new RegExp( regexS );  
+          var results = regex.exec( window.location.href ); 
+          if( results == null ) {
+             return "";
+         } else { 
+           return results[1];
+         }
+      }
+
+      /*
+       * Hides options to add bookmark
+       */
+      function hideAdder() {
+          $('#addBm').hide()
+      }
+
+     /*
+      * Shows Option to add Bookmark
+      */
+     function showAdder() {
+          $('#addBm').show()
+      }
+
+     /*
+      * deletes Bookmark on server side and hides bookmark view on success
+      */
+     function deleteBookmark(elem, url) {
+       ans = confirm('Are you sure to delete : ' + url + ' ?')
+       if(ans == true) {
+            $.post('/bms/link/delete', {'url': url}, function(d, txst, jxhr) {
+               elem.parentNode.style.display = 'none'
+             })
+       } 
+     }
+   
+     /*
+      * Adds bookmark; Posts values in the textbox to server
+      * Hides the Add option when success
+      */
+     function addBookmark() {
+        params = {
+                 'url'   : $('#url').val(),
+                 'title' : $('#title').val(),
+                 'tags'  : $('#newTags').val()
+                };
+
+       $.post('/bms/link', params, function(data, txStatusm, jxhr){
+           //After success; hide the add option and reload the results
+           hideAdder();
+           search();
+        });
+     }
+
+      /*
+       * Displays Bookmarks
+       */
+      function showBookmarks(bms, status, xhr) {
+         // remove the results of older search
+         $("#results").empty()
+          if(bms.length < 1) {
+            // Show no Bookmark found message
+            li = $('<li>')
+             li.addClass('alert alert-error')
+            li.text('No bookmark found!')
+            $("#results").append(li)             
+
+           } else {
+             //show bookmarks
+             $.each(bms, function(key, value){
+                li = $('<li>')
+                li.addClass('alert alert-info bookmark')
+                
+                /*Displays 'x' mark button, onclick on it triggers delete event */
+                del = $('<button>')
+                del.attr({
+                          'class' : 'close delete',
+                          'type' : 'button',
+                          'onclick': "deleteBookmark(this, '" + value['url'] + "')"
+                          })
+                del.html('&times;');
+                li.append(del)
+
+                /*Display Link, on click of it opens it in new Tab*/
+                link = $('<a>')
+                link.attr({
+                    'href' : value['url'],
+                    'target' : '_blank',
+                    'class' : 'bookmarklink'
+                })
+                link.text(value['title'])
+                li.append(link)
+
+                /*  Display all tags and on click of tags, filters bookmarks */
+                $.each(value['tags'], function(key2, value2){
+                    tag = $('<a>')
+                    tag.attr({
+                          'class':'badge badge-info tag',
+                          'onclick': "searchByTag('"+ value2 + "')"
+                          })
+                    tag.text(value2)
+                    li.append(tag)
+                    });
+                $("#results").append(li)
+            });
+         }
+      }
+
+      /*
+       * Searches for Bookmark by using values in textbox as arguments/filters
+       */
+      function search() {
+          complexSearch({ 'q': $("#q").val()
+                          })
+      }
+
+       function complexSearch(args) {
+           $.get( "/bms/link", args, function(data, status, xhr) {
+            showBookmarks(data, status, xhr)
+          })
+       }
+
+      /*
+       * Searches for bookmarks by using given 'tagName' as filer
+       *
+       */
+      function searchByTag(tagName) {
+            args = {
+                  'tags' : tagName
+                 }
+          complexSearch(args)
+      }
+
+
+      function triggerAdd(ev) {
+        if(ev.keyCode == 13) {
+           $('#addBmBtn').click()
+        }
+      }
+
+      function triggerSearch(event) {
+          /* this is simple, client side query validator
+           Trigger search when
+               Enter Key is pressed OR (number_of_open_braces == number_of_close_brances AND space is pressed)
+          */
+        qry = $("#q").val()
+        rule1 = (qry.match(/\(/g) || []).length == (qry.match(/\)/g) || []).length
+        rule2 = qry.length > 0 && qry[qry.length-1] == ')' || event.keyCode == 32
+        if(event.keyCode == 13 || (rule1 && rule2 )) {
+           $("#searchBtn").click();
+        }
+      }
+    </script>
+    </head>
+
+  <body style="padding:5px;">
+
+     <a href="#" onclick="$('#addBm').toggle()">&#8711;</a>
+     <div class="section1" id="addBm">
+      <div class="ajaxAddForm">
+        <input type="text" name="url" id="url" readonly="true" style="width:100%; height:25px;"/>
+        <input type="text" name="title" id="title" style="width:100%; height:25px;" />
+          <script type="text/javascript" >
+            $('#url').val(decodeURIComponent(urlParam('url')))
+            $('#title').val(decodeURIComponent(urlParam('title')))
+          </script>
+        <input type="text" name="tags" id="newTags" placeholder="Tag1,Tag2" style="width:70%; height:25px;" onkeyup="triggerAdd(event)"/>
+        <input type="submit" name="add" id="addBmBtn" value="Bookmark" class="btn btn-primary" onclick="addBookmark()" style="width:27%"/>
+       <hr class="horizontal-divider"/>
+      </div> 
+    </div>
+
+    <div class="ajaxSearchForm">
+      <input type="text" id="q" name="q"  style="height:25px; width:70%" placeholder="Query"  onkeyup="triggerSearch(event)" >
+      <button type="submit" id="searchBtn" class="btn btn-success"  onClick="hideAdder();search()" style="width:27%;">Search</button>
+    <div>
+    <div class="results">
+      <ul id="results" class="bookmarklist">
+        <script type="text/javascript">
+          // Onload display bookmarks with empty search filters
+          search();
+        </script>
+      </ul>
+    </div>
+
+  </body>
+</html>
